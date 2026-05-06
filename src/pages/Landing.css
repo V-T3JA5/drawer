@@ -1,4 +1,4 @@
-/* ── LANDING PAGE ───────────────────────────────── */
+/* ── LANDING PAGE ─────────────────────────────── */
  
 .landing-wrap {
   position: relative;
@@ -8,13 +8,16 @@
   background: #010810;
 }
  
-.landing-canvas {
-  position: fixed !important;
+/* ── CANVAS ───────────────────────────────────── */
+.canvas-wrap {
+  position: fixed;
   inset: 0;
-  width: 100vw !important;
-  height: 100vh !important;
   z-index: 1;
-  pointer-events: none;
+}
+ 
+.canvas-wrap canvas {
+  width: 100% !important;
+  height: 100% !important;
 }
  
 /* ── NAV ──────────────────────────────────────── */
@@ -44,9 +47,9 @@
   color: rgba(0,212,255,0.55);
 }
  
-.sep { color: rgba(0,212,255,0.35); margin: 0 6px; }
+.sep { color: rgba(0,212,255,0.3); margin: 0 6px; }
  
-/* ── CENTER LABELS ────────────────────────────── */
+/* ── CENTER LABEL ─────────────────────────────── */
 .center-label {
   position: fixed;
   top: 50%; left: 50%;
@@ -60,18 +63,9 @@
   gap: 14px;
 }
  
-.animate-in {
-  animation: fade-up 0.5s ease forwards;
-}
- 
-@keyframes fade-up {
-  from { opacity:0; transform: translate(-50%, calc(-50% + 24px)); }
-  to   { opacity:1; transform: translate(-50%, -50%); }
-}
- 
 .phase-word {
   font-family: 'Space Grotesk', sans-serif;
-  font-size: clamp(52px, 9vw, 120px);
+  font-size: clamp(56px, 10vw, 130px);
   font-weight: 700;
   letter-spacing: -0.02em;
   color: #ffffff;
@@ -81,8 +75,8 @@
  
 .phase-word.glow {
   text-shadow:
-    0 0 50px rgba(0,212,255,0.35),
-    0 0 100px rgba(0,212,255,0.12);
+    0 0 60px rgba(0,212,255,0.4),
+    0 0 120px rgba(0,212,255,0.15);
 }
  
 .phase-sub {
@@ -104,30 +98,25 @@
 .hcard {
   position: absolute;
   pointer-events: all;
-  background: rgba(1, 10, 22, 0.78);
+  background: rgba(1, 10, 22, 0.75);
   border: 1px solid rgba(0,212,255,0.18);
   border-radius: 10px;
-  padding: 11px 18px;
-  backdrop-filter: blur(18px);
+  padding: 12px 18px;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   cursor: none;
   display: flex;
   align-items: center;
   gap: 10px;
-  min-width: 195px;
-  max-width: 235px;
-  transition: background 0.25s, border-color 0.25s, transform 0.25s, box-shadow 0.25s;
-  animation: card-slide 0.45s ease both;
-}
- 
-@keyframes card-slide {
-  from { opacity:0; transform: translateX(16px); }
-  to   { opacity:1; transform: translateX(0); }
+  min-width: 190px;
+  max-width: 230px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.3);
+  transition: box-shadow 0.3s, border-color 0.3s;
 }
  
 .hcard:hover {
-  background: rgba(0, 18, 38, 0.92);
-  transform: translateX(5px) scale(1.025);
-  box-shadow: 0 0 28px rgba(0,212,255,0.1);
+  border-color: rgba(0,212,255,0.4);
+  box-shadow: 0 8px 32px rgba(0,212,255,0.08);
 }
  
 .hcard-num {
@@ -136,6 +125,7 @@
   font-weight: 700;
   letter-spacing: 0.15em;
   min-width: 22px;
+  flex-shrink: 0;
 }
  
 .hcard-title {
@@ -144,18 +134,13 @@
   font-weight: 500;
   color: rgba(255,255,255,0.82);
   flex: 1;
-  line-height: 1.3;
+  line-height: 1.35;
 }
  
 .hcard-arrow {
-  font-size: 17px;
+  font-size: 18px;
   opacity: 0.6;
-  transition: opacity 0.2s, transform 0.2s;
-}
- 
-.hcard:hover .hcard-arrow {
-  opacity: 1;
-  transform: translateX(3px);
+  flex-shrink: 0;
 }
  
 /* ── SCROLL HINT ──────────────────────────────── */
@@ -170,34 +155,24 @@
   align-items: center;
   gap: 10px;
   pointer-events: none;
-  animation: fade-up2 1s ease 0.4s both;
-}
- 
-@keyframes fade-up2 {
-  from { opacity:0; transform: translateX(-50%) translateY(12px); }
-  to   { opacity:1; transform: translateX(-50%) translateY(0); }
 }
  
 .scroll-hint span {
   font-family: 'Space Mono', monospace;
   font-size: 9px;
-  letter-spacing: 0.35em;
+  letter-spacing: 0.38em;
   color: rgba(0,212,255,0.45);
 }
  
 .scroll-line {
   width: 1px;
-  height: 48px;
+  height: 46px;
   background: linear-gradient(to bottom, rgba(0,212,255,0.6), transparent);
   animation: line-pulse 2s ease-in-out infinite;
 }
  
 @keyframes line-pulse {
-  0%,100% { opacity:0.35; }
-  50%      { opacity:1; }
+  0%,100% { opacity: 0.35; transform: scaleY(1); }
+  50%      { opacity: 1;   transform: scaleY(1.08); }
 }
  
-
-
-
-
