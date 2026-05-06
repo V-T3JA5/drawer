@@ -1,0 +1,111 @@
+/* ============================================
+   TJ WATERMARK — Rare Element Glow
+   Always fixed at bottom center
+   ============================================ */
+
+.tj-watermark-wrap {
+  position: fixed;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 60px;
+  height: 30px;
+}
+
+.tj-label {
+  position: relative;
+  z-index: 2;
+  font-family: 'Space Mono', monospace;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.45em;
+  text-indent: 0.45em;
+  background: linear-gradient(
+    135deg,
+    #00d4ff 0%,
+    #ffffff 30%,
+    #7b2fff 60%,
+    #00ffaa 80%,
+    #00d4ff 100%
+  );
+  background-size: 300% 300%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: tj-gradient-shift 5s ease infinite,
+             tj-brightness 3s ease-in-out infinite;
+  filter: drop-shadow(0 0 6px rgba(0, 212, 255, 0.9));
+}
+
+/* Glow rings around TJ — layered */
+.tj-glow-ring {
+  position: absolute;
+  border-radius: 50%;
+  animation: tj-ring-pulse 3s ease-in-out infinite;
+}
+
+.tj-glow-ring-1 {
+  width: 50px;
+  height: 20px;
+  background: radial-gradient(ellipse, rgba(0, 212, 255, 0.18) 0%, transparent 70%);
+  animation-delay: 0s;
+}
+
+.tj-glow-ring-2 {
+  width: 80px;
+  height: 30px;
+  background: radial-gradient(ellipse, rgba(123, 47, 255, 0.1) 0%, transparent 70%);
+  animation-delay: 0.5s;
+}
+
+.tj-glow-ring-3 {
+  width: 120px;
+  height: 40px;
+  background: radial-gradient(ellipse, rgba(0, 255, 170, 0.05) 0%, transparent 70%);
+  animation-delay: 1s;
+}
+
+/* Floor reflection effect */
+.tj-watermark-wrap::after {
+  content: 'TJ';
+  position: absolute;
+  bottom: -14px;
+  left: 50%;
+  transform: translateX(-48%) scaleY(-0.4);
+  font-family: 'Space Mono', monospace;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.45em;
+  color: rgba(0, 212, 255, 0.15);
+  filter: blur(2px);
+  pointer-events: none;
+  z-index: 1;
+}
+
+@keyframes tj-gradient-shift {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes tj-brightness {
+  0%, 100% {
+    filter: drop-shadow(0 0 4px rgba(0, 212, 255, 0.6))
+            drop-shadow(0 0 10px rgba(0, 212, 255, 0.3));
+  }
+  50% {
+    filter: drop-shadow(0 0 10px rgba(0, 212, 255, 1))
+            drop-shadow(0 0 25px rgba(123, 47, 255, 0.6))
+            drop-shadow(0 0 40px rgba(0, 255, 170, 0.3));
+  }
+}
+
+@keyframes tj-ring-pulse {
+  0%, 100% { opacity: 0.4; transform: scale(1); }
+  50%       { opacity: 1;   transform: scale(1.15); }
+}

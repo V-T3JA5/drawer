@@ -1,0 +1,126 @@
+/* ============================================
+   AUTOCAD CROSSHAIR CURSOR
+   ============================================ */
+
+.autocad-cursor {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  z-index: 999999;
+  transform: translate(-50%, -50%);
+}
+
+/* Crosshair arms */
+.arm {
+  position: absolute;
+  background: rgba(255, 255, 255, 0.9);
+  transition: width 0.15s ease, height 0.15s ease, opacity 0.15s ease, box-shadow 0.15s ease;
+}
+
+.arm-left,
+.arm-right {
+  height: 1px;
+  top: 0;
+  transform: translateY(-50%);
+}
+
+.arm-top,
+.arm-bottom {
+  width: 1px;
+  left: 0;
+  transform: translateX(-50%);
+}
+
+/* Default arm lengths */
+.arm-left  { width: 18px; right: 6px; }
+.arm-right { width: 18px; left: 6px; }
+.arm-top   { height: 18px; bottom: 6px; }
+.arm-bottom { height: 18px; top: 6px; }
+
+/* Center square */
+.center-square {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  transform: translate(-50%, -50%);
+  background: transparent;
+  transition: all 0.15s ease;
+}
+
+/* Hover state */
+.autocad-cursor.hovering .arm {
+  background: rgba(0, 212, 255, 1);
+  box-shadow: 0 0 6px rgba(0, 212, 255, 0.8);
+}
+
+.autocad-cursor.hovering .arm-left,
+.autocad-cursor.hovering .arm-right {
+  width: 24px;
+}
+
+.autocad-cursor.hovering .arm-top,
+.autocad-cursor.hovering .arm-bottom {
+  height: 24px;
+}
+
+.autocad-cursor.hovering .center-square {
+  width: 11px;
+  height: 11px;
+  border-color: rgba(0, 212, 255, 1);
+  box-shadow: 0 0 8px rgba(0, 212, 255, 0.6);
+}
+
+/* Click state */
+.autocad-cursor.clicking .arm {
+  background: rgba(255, 255, 255, 1);
+  box-shadow: 0 0 12px rgba(0, 212, 255, 1);
+}
+
+.autocad-cursor.clicking .arm-left,
+.autocad-cursor.clicking .arm-right {
+  width: 14px;
+}
+
+.autocad-cursor.clicking .arm-top,
+.autocad-cursor.clicking .arm-bottom {
+  height: 14px;
+}
+
+.autocad-cursor.clicking .center-square {
+  width: 6px;
+  height: 6px;
+  background: rgba(0, 212, 255, 0.3);
+  box-shadow: 0 0 16px rgba(0, 212, 255, 1);
+}
+
+/* Outer lagging ring */
+.cursor-outer-ring {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 40px;
+  height: 40px;
+  border: 1px solid rgba(0, 212, 255, 0.25);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 999998;
+  transform: translate(-50%, -50%);
+  transition: width 0.3s ease, height 0.3s ease, border-color 0.3s ease, opacity 0.3s ease;
+}
+
+.cursor-outer-ring.hovering {
+  width: 60px;
+  height: 60px;
+  border-color: rgba(0, 212, 255, 0.5);
+}
+
+.cursor-outer-ring.clicking {
+  width: 80px;
+  height: 80px;
+  border-color: rgba(0, 212, 255, 0.15);
+  opacity: 0.5;
+}
