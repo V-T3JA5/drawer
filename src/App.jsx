@@ -1,6 +1,9 @@
 import { createBrowserRouter, RouterProvider } from 'react-router-dom'
-import Home from '@/pages/Home'
-import WeekPage from '@/pages/WeekPage'
+import Home from './pages/Home'
+import WeekPage from './pages/WeekPage'
+import GlobalCursor from './components/GlobalCursor'
+import TJWatermark from './components/TJWatermark'
+import ParticleField from './components/ParticleField'
 
 const router = createBrowserRouter([
   {
@@ -14,5 +17,12 @@ const router = createBrowserRouter([
 ])
 
 export default function App() {
-  return <RouterProvider router={router} />
+  return (
+    <>
+      <ParticleField />
+      <TJWatermark />
+      <GlobalCursor />
+      <RouterProvider router={router} />
+    </>
+  )
 }
