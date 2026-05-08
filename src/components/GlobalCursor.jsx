@@ -1,9 +1,8 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { motion, useMotionValue, useSpring, AnimatePresence } from 'framer-motion'
 
-// Crosshair geometry constants
-const ARM = 50   // arm length each side from center square edge (px)
-const BOX = 5    // center square half-size (px)
+const ARM = 50
+const BOX = 5
 const TRAIL_COUNT = 6
 
 export default function GlobalCursor() {
@@ -18,7 +17,6 @@ export default function GlobalCursor() {
   const x = useSpring(rawX, springCfg)
   const y = useSpring(rawY, springCfg)
 
-  // Trail springs — progressively laggier
   const trails = Array.from({ length: TRAIL_COUNT }, (_, i) => ({
     // eslint-disable-next-line react-hooks/rules-of-hooks
     x: useSpring(rawX, { stiffness: 500 - i * 55, damping: 48 + i * 3, mass: 0.35 + i * 0.1 }),
@@ -69,9 +67,9 @@ export default function GlobalCursor() {
 
   return (
     <>
-      {/* Trail crosshairs — bottom of stack, lowest opacity */}
+      {/* Trail crosshairs */}
       {trails.map((trail, i) => {
-        const opacity = 0.03 + (i / TRAIL_COUNT) * 0.09
+        const opacity = 0.03 + (i / TRAIL_COUNT) * 0.08
         const armScale = 0.65 + (i / TRAIL_COUNT) * 0.3
         return (
           <TrailCrosshair
@@ -103,10 +101,9 @@ export default function GlobalCursor() {
         animate={{ scale: hovered ? 1.5 : 1 }}
         transition={{ type: 'spring', stiffness: 500, damping: 28 }}
       >
-        <CrosshairMark arm={ARM} box={BOX} glow />
+        <CrosshairMark arm={ARM} box={BOX} />
       </motion.div>
 
-      {/* Click bursts */}
       <AnimatePresence>
         {bursts.map((burst) => (
           <BurstEffect key={burst.id} x={burst.x} y={burst.y} />
@@ -116,8 +113,7 @@ export default function GlobalCursor() {
   )
 }
 
-// The crosshair SVG — two lines crossing, gap in center, small square at gap
-function CrosshairMark({ arm, box, glow = false }) {
+function CrosshairMark({ arm, box }) {
   const size = (arm + box + 2) * 2
   const half = arm + box + 2
 
@@ -128,45 +124,62 @@ function CrosshairMark({ arm, box, glow = false }) {
       viewBox={`${-half} ${-half} ${size} ${size}`}
       style={{ overflow: 'visible', display: 'block' }}
     >
-      {glow && (
-        <defs>
-          <filter id="ch-glow" x="-80%" y="-80%" width="260%" height="260%">
-            <feGaussianBlur stdDeviation="2" result="blur" />
-            <feMerge>
-              <feMergeNode in="blur" />
-              <feMergeNode in="SourceGraphic" />
-            </feMerge>
-          </filter>
-        </defs>
-      )}
+      <defs>
+        {/* Outer wide glow — deep crimson bleed */}
+        <filter id="neon-outer" x="-100%" y="-100%" width="300%" height="300%">
+          <feGaussianBlur stdDeviation="4" result="blur1" />
+          <feColorMatrix
+            in="blur1"
+            type="matrix"
+            values="1.5 0 0 0 0.5   0 0 0 0 0   0 0 0 0 0   0 0 0 1 0"
+            result="redBlur"
+          />
+          <feMerge>
+            <feMergeNode in="redBlur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
 
-      {/* Bloom layer — fat blurred copy underneath */}
-      {glow && (
-        <g opacity="0.35" filter="url(#ch-glow)">
-          <line x1={-(arm + box)} y1={0} x2={-box} y2={0} stroke="#dc143c" strokeWidth="3.5" />
-          <line x1={box} y1={0} x2={arm + box} y2={0} stroke="#dc143c" strokeWidth="3.5" />
-          <line x1={0} y1={-(arm + box)} x2={0} y2={-box} stroke="#dc143c" strokeWidth="3.5" />
-          <line x1={0} y1={box} x2={0} y2={arm + box} stroke="#dc143c" strokeWidth="3.5" />
-          <rect x={-box} y={-box} width={box * 2} height={box * 2} fill="none" stroke="#dc143c" strokeWidth="3.5" />
-        </g>
-      )}
+        {/* Inner tight glow — bright core halo */}
+        <filter id="neon-inner" x="-60%" y="-60%" width="220%" height="220%">
+          <feGaussianBlur stdDeviation="1.2" result="blur2" />
+          <feMerge>
+            <feMergeNode in="blur2" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+      </defs>
 
-      {/* Sharp 1px lines — exactly like AutoCAD */}
-      <g filter={glow ? 'url(#ch-glow)' : undefined}>
-        {/* Horizontal: gap = box width each side */}
-        <line x1={-(arm + box)} y1={0} x2={-box} y2={0} stroke="#dc143c" strokeWidth="1" />
-        <line x1={box} y1={0} x2={arm + box} y2={0} stroke="#dc143c" strokeWidth="1" />
-        {/* Vertical */}
-        <line x1={0} y1={-(arm + box)} x2={0} y2={-box} stroke="#dc143c" strokeWidth="1" />
-        <line x1={0} y1={box} x2={0} y2={arm + box} stroke="#dc143c" strokeWidth="1" />
-        {/* Center square */}
-        <rect x={-box} y={-box} width={box * 2} height={box * 2} fill="none" stroke="#dc143c" strokeWidth="1" />
+      {/* Layer 1 — wide crimson bleed glow */}
+      <g filter="url(#neon-outer)" opacity="0.7">
+        <line x1={-(arm + box)} y1={0} x2={-box} y2={0} stroke="#8b0000" strokeWidth="4" />
+        <line x1={box} y1={0} x2={arm + box} y2={0} stroke="#8b0000" strokeWidth="4" />
+        <line x1={0} y1={-(arm + box)} x2={0} y2={-box} stroke="#8b0000" strokeWidth="4" />
+        <line x1={0} y1={box} x2={0} y2={arm + box} stroke="#8b0000" strokeWidth="4" />
+        <rect x={-box} y={-box} width={box * 2} height={box * 2} fill="none" stroke="#8b0000" strokeWidth="4" />
+      </g>
+
+      {/* Layer 2 — mid crimson glow */}
+      <g filter="url(#neon-inner)" opacity="0.9">
+        <line x1={-(arm + box)} y1={0} x2={-box} y2={0} stroke="#dc143c" strokeWidth="2" />
+        <line x1={box} y1={0} x2={arm + box} y2={0} stroke="#dc143c" strokeWidth="2" />
+        <line x1={0} y1={-(arm + box)} x2={0} y2={-box} stroke="#dc143c" strokeWidth="2" />
+        <line x1={0} y1={box} x2={0} y2={arm + box} stroke="#dc143c" strokeWidth="2" />
+        <rect x={-box} y={-box} width={box * 2} height={box * 2} fill="none" stroke="#dc143c" strokeWidth="2" />
+      </g>
+
+      {/* Layer 3 — bright white core, 1px sharp */}
+      <g opacity="0.95">
+        <line x1={-(arm + box)} y1={0} x2={-box} y2={0} stroke="#ffffff" strokeWidth="0.75" />
+        <line x1={box} y1={0} x2={arm + box} y2={0} stroke="#ffffff" strokeWidth="0.75" />
+        <line x1={0} y1={-(arm + box)} x2={0} y2={-box} stroke="#ffffff" strokeWidth="0.75" />
+        <line x1={0} y1={box} x2={0} y2={arm + box} stroke="#ffffff" strokeWidth="0.75" />
+        <rect x={-box} y={-box} width={box * 2} height={box * 2} fill="none" stroke="#ffffff" strokeWidth="0.75" />
       </g>
     </svg>
   )
 }
 
-// Trail crosshair — no glow, just raw lines at low opacity
 function TrailCrosshair({ x, y, arm, box, opacity, zIndex }) {
   const size = (arm + box + 2) * 2
   const half = arm + box + 2
@@ -193,6 +206,7 @@ function TrailCrosshair({ x, y, arm, box, opacity, zIndex }) {
         viewBox={`${-half} ${-half} ${size} ${size}`}
         style={{ overflow: 'visible', display: 'block' }}
       >
+        {/* Trail: just the crimson mid layer, no white core */}
         <line x1={-(arm + box)} y1={0} x2={-box} y2={0} stroke="#dc143c" strokeWidth="1" />
         <line x1={box} y1={0} x2={arm + box} y2={0} stroke="#dc143c" strokeWidth="1" />
         <line x1={0} y1={-(arm + box)} x2={0} y2={-box} stroke="#dc143c" strokeWidth="1" />
@@ -203,7 +217,6 @@ function TrailCrosshair({ x, y, arm, box, opacity, zIndex }) {
   )
 }
 
-// Click burst — line fragments radiate out + expanding square shockwave
 function BurstEffect({ x, y }) {
   const fragments = Array.from({ length: 8 }, (_, i) => {
     const angle = (i / 8) * Math.PI * 2
@@ -227,16 +240,14 @@ function BurstEffect({ x, y }) {
             top: y,
             left: x,
             width: f.len,
-            height: 1,
-            backgroundColor: '#dc143c',
-            boxShadow: '0 0 4px 1px rgba(220,20,60,0.8)',
+            height: 1.5,
+            background: 'linear-gradient(90deg, #ffffff, #dc143c)',
+            boxShadow: '0 0 6px 2px rgba(220,20,60,0.9), 0 0 12px 4px rgba(139,0,0,0.5)',
             pointerEvents: 'none',
             zIndex: 9998,
             translateX: '-50%',
             translateY: '-50%',
             rotate: `${f.angle}deg`,
-            originX: '50%',
-            originY: '50%',
           }}
           initial={{ opacity: 1, x: 0, y: 0, scaleX: 1 }}
           animate={{ opacity: 0, x: f.dx, y: f.dy, scaleX: 0 }}
@@ -245,7 +256,7 @@ function BurstEffect({ x, y }) {
         />
       ))}
 
-      {/* Expanding square — mirrors center square */}
+      {/* Expanding square shockwave */}
       <motion.div
         style={{
           position: 'fixed',
@@ -253,7 +264,8 @@ function BurstEffect({ x, y }) {
           left: x,
           width: BOX * 2,
           height: BOX * 2,
-          border: '1px solid rgba(220,20,60,0.9)',
+          border: '1px solid rgba(255,255,255,0.9)',
+          boxShadow: '0 0 8px 2px rgba(220,20,60,0.8), 0 0 20px 6px rgba(139,0,0,0.4)',
           pointerEvents: 'none',
           zIndex: 9998,
           translateX: '-50%',
@@ -265,7 +277,6 @@ function BurstEffect({ x, y }) {
         transition={{ duration: 0.5, ease: 'easeOut' }}
       />
 
-      {/* Second ring, delayed */}
       <motion.div
         style={{
           position: 'fixed',
@@ -273,7 +284,8 @@ function BurstEffect({ x, y }) {
           left: x,
           width: BOX * 2,
           height: BOX * 2,
-          border: '1px solid rgba(220,20,60,0.45)',
+          border: '1px solid rgba(220,20,60,0.6)',
+          boxShadow: '0 0 12px 4px rgba(139,0,0,0.3)',
           pointerEvents: 'none',
           zIndex: 9998,
           translateX: '-50%',
@@ -287,3 +299,5 @@ function BurstEffect({ x, y }) {
     </>
   )
 }
+
+const BOX = 5
