@@ -299,5 +299,3 @@ function BurstEffect({ x, y }) {
     </>
   )
 }
-
-const BOX = 5
