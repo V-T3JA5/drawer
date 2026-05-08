@@ -23,7 +23,6 @@ export default function App() {
       <ParticleField />
       <TJWatermark />
       <GlobalCursor />
-
       {/* Page content sits above particles (z-index handled per layer) */}
       <RouterProvider router={router} />
     </>
