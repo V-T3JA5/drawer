@@ -9,7 +9,7 @@
 //   - Bloom from parent EffectComposer handles all glow
 //   - Calls props.onComplete() when sequence ends → S5 helix fades in
 
-import { useRef, useEffect, useMemo, useCallback } from 'react'
+import { useRef, useEffect, useMemo } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import gsap from 'gsap'
@@ -266,25 +266,8 @@ export default function OpeningSequence({ onComplete }) {
     // Create arc pool
     s.arcPool = createArcPool(scene, ARC_POOL_SIZE)
 
-    // Initialize instanced mesh — hide all fragments initially (scale 0)
-    if (instancedMeshRef.current) {
-      const mesh = instancedMeshRef.current
-      const dummy = s.dummy
-      for (let i = 0; i < FRAGMENT_COUNT; i++) {
-        dummy.position.set(
-          s.positions[i * 3],
-          s.positions[i * 3 + 1],
-          s.positions[i * 3 + 2]
-        )
-        dummy.scale.setScalar(0) // Hidden until etched
-        dummy.updateMatrix()
-        mesh.setMatrixAt(i, dummy.matrix)
-      }
-      mesh.instanceMatrix.needsUpdate = true
-      // Set colors
-      mesh.instanceColor = new THREE.InstancedBufferAttribute(colorArray, 3)
-      mesh.instanceColor.needsUpdate = true
-    }
+    // Mark as ready for first-frame init (mesh ref not yet committed at useEffect time)
+    s.needsInit = true
 
     // ── GSAP Timeline ──────────────────────────────────────────────────────────
     const tl = gsap.timeline({ delay: 0.5 })
@@ -320,7 +303,7 @@ export default function OpeningSequence({ onComplete }) {
     })
 
     // Brief chaos hold — 0.4s
-    tl.to(s, {}, { duration: 0.4 })
+    tl.to(s, { duration: 0.4 })
 
     // Phase 4: Reassemble into DRAWER — 1.8s, staggered pull-in
     tl.to(s, {
@@ -374,6 +357,27 @@ export default function OpeningSequence({ onComplete }) {
     const s = state.current
     const mesh = instancedMeshRef.current
     if (!mesh || !s.positions) return
+
+    // ── First-frame mesh initialization (safe — mesh is committed by now) ──
+    if (s.needsInit) {
+      s.needsInit = false
+      const dummy = s.dummy
+      for (let i = 0; i < FRAGMENT_COUNT; i++) {
+        dummy.position.set(
+          s.positions[i * 3],
+          s.positions[i * 3 + 1],
+          s.positions[i * 3 + 2]
+        )
+        dummy.scale.setScalar(0) // Hidden until etched
+        dummy.updateMatrix()
+        mesh.setMatrixAt(i, dummy.matrix)
+      }
+      mesh.instanceMatrix.needsUpdate = true
+      // Attach instanced color buffer (separate from vertexColors — no conflict)
+      mesh.instanceColor = new THREE.InstancedBufferAttribute(colorArray, 3)
+      mesh.instanceColor.needsUpdate = true
+      return // Skip rest of frame — let GSAP timeline start
+    }
 
     const dummy = s.dummy
     const t = clock.getElapsedTime()
@@ -463,16 +467,12 @@ export default function OpeningSequence({ onComplete }) {
         mesh.setMatrixAt(i, dummy.matrix)
       }
 
-      // Arc bursts during shatter
+      // Arc bursts during shatter — fire from TJ origin positions (correct source)
       if (sp > 0.05 && t - s.lastArcTime > 0.03) {
         const idx1 = Math.floor(Math.random() * FRAGMENT_COUNT)
         const idx2 = Math.floor(Math.random() * FRAGMENT_COUNT)
-        const p1 = new THREE.Vector3(
-          s.positions[idx1 * 3] || s.homesTJ[idx1 * 3],
-          s.positions[idx1 * 3 + 1] || s.homesTJ[idx1 * 3 + 1], 0)
-        const p2 = new THREE.Vector3(
-          s.positions[idx2 * 3] || s.homesTJ[idx2 * 3],
-          s.positions[idx2 * 3 + 1] || s.homesTJ[idx2 * 3 + 1], 0)
+        const p1 = new THREE.Vector3(s.homesTJ[idx1 * 3], s.homesTJ[idx1 * 3 + 1], 0)
+        const p2 = new THREE.Vector3(s.homesTJ[idx2 * 3], s.homesTJ[idx2 * 3 + 1], 0)
         fireArc(s.arcPool, p1, p2, 0.08 + Math.random() * 0.06)
         s.lastArcTime = t
       }
@@ -608,7 +608,6 @@ export default function OpeningSequence({ onComplete }) {
         {/* Tetrahedron for crystal-like fragment silhouette */}
         <tetrahedronGeometry args={[FRAGMENT_SIZE, 0]} />
         <meshBasicMaterial
-          vertexColors
           transparent
           opacity={1}
           blending={THREE.AdditiveBlending}
