@@ -1,368 +1,395 @@
-// src/three/OpeningSequence.jsx
-// S4a — black → TJ etch → shatter → DRAWER reassemble → hold → clear → onComplete
-//
-// Fixes in this version:
-//   - Arcs removed entirely
-//   - Fragment color: white core + crimson (matches cursor)
-//   - Fragment size corrected for camera fov=60 z=8
-//   - Letter scale corrected — fills screen properly
-//   - Done phase: fast scale-to-zero so transition is visible
+/**
+ * OpeningSequence.jsx
+ *
+ * Renders inside HelixScene's R3F Canvas.
+ * Manages all fragment geometry, electric arc system, and the full animation timeline:
+ *
+ * Phase 0 — IDLE           Black screen, 0.5s pause
+ * Phase 1 — ETCH           TJ fragments appear progressively (laser etch)
+ * Phase 2 — HOLD_TJ        TJ crackles with residual electricity
+ * Phase 3 — SHATTER        Fragments scatter with velocity + gravity
+ * Phase 4 — REASSEMBLE     Fragments magnetise into DRAWER positions
+ * Phase 5 — GLOW_HOLD      DRAWER glows + arcs slowly die
+ * Phase 6 — DONE           Fires onComplete callback → helix transition
+ *
+ * Props:
+ *   onComplete   {function}  — Called when opening sequence finishes
+ *   arcSystemRef {React.MutableRefObject} — Ref to arc system (populated async by ArcSystemManager)
+ *                              Read .current inside useFrame, not at render time.
+ */
 
-import { useRef, useEffect, useMemo } from 'react'
-import { useFrame } from '@react-three/fiber'
+import { useRef, useEffect, useMemo, useCallback } from 'react'
+import { useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
-import gsap from 'gsap'
+import { sampleLetterPositions } from '../utils/letterSampler'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-// Camera z=8, fov=60 → visible height ≈ 9.24 units, width ≈ 16.4 units
-// TJ should fill ~35% of screen width → ~5.7 units
-// DRAWER should fill ~70% of screen width → ~11 units
 
-const FRAGMENT_COUNT  = typeof window !== 'undefined' && window.innerWidth < 768 ? 500 : 1200
-const FRAGMENT_SIZE   = 0.06
-const TJ_SCALE_X      = 5.5
-const TJ_SCALE_Y      = 2.8
-const DRAWER_SCALE_X  = 10.5
-const DRAWER_SCALE_Y  = 2.4
+const FRAGMENT_COUNT        = 1200
+const MOBILE_FRAGMENT_COUNT = 600
+const CRIMSON               = new THREE.Color(0xdc143c)
 
-// White core + crimson glow — same aesthetic as the cursor
-const WHITE          = new THREE.Color('#ffffff')
-const CRIMSON        = new THREE.Color('#dc143c')
-const CRIMSON_BRIGHT = new THREE.Color('#ff2050')
+const T_IDLE       = 0.5
+const T_ETCH       = 2.8
+const T_HOLD_TJ    = 1.2
+const T_SHATTER    = 1.0
+const T_REASSEMBLE = 1.8
+const T_GLOW_HOLD  = 1.5
 
-// ─── Letter sampler ───────────────────────────────────────────────────────────
+const ARC_RATE_ETCH       = 14
+const ARC_RATE_HOLD_TJ    = 8
+const ARC_RATE_SHATTER    = 20
+const ARC_RATE_REASSEMBLE = 12
+const ARC_RATE_GLOW_HOLD  = 4
 
-function sampleLetterPositions(text, targetCount, scaleX, scaleY) {
-  const W = 512, H = 200
-  const canvas = document.createElement('canvas')
-  canvas.width = W
-  canvas.height = H
-  const ctx = canvas.getContext('2d')
+const SCATTER_SPEED_MIN = 0.8
+const SCATTER_SPEED_MAX = 3.2
+const GRAVITY           = -0.4
+const PULL_EASE         = 4.5
 
-  ctx.fillStyle = '#000'
-  ctx.fillRect(0, 0, W, H)
-
-  const fontSize = Math.floor(H * 0.78)
-  ctx.font = `900 ${fontSize}px 'Arial Black', 'Impact', sans-serif`
-  ctx.fillStyle = '#fff'
-  ctx.textAlign = 'center'
-  ctx.textBaseline = 'middle'
-  ctx.fillText(text, W / 2, H / 2)
-
-  const pixels = ctx.getImageData(0, 0, W, H).data
-  const lit = []
-  for (let y = 0; y < H; y++) {
-    for (let x = 0; x < W; x++) {
-      if (pixels[(y * W + x) * 4] > 128) lit.push({ x, y })
-    }
-  }
-
-  // Shuffle for organic reveal order
-  for (let i = lit.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [lit[i], lit[j]] = [lit[j], lit[i]]
-  }
-
-  const step = Math.max(1, Math.floor(lit.length / targetCount))
-  const positions = []
-  for (let i = 0; i < lit.length && positions.length < targetCount; i += step) {
-    const { x, y } = lit[i]
-    positions.push(new THREE.Vector3(
-      ((x / W) - 0.5) * scaleX,
-      -((y / H) - 0.5) * scaleY,
-      0
-    ))
-  }
-  return positions
+const PHASE = {
+  IDLE:       0,
+  ETCH:       1,
+  HOLD_TJ:    2,
+  SHATTER:    3,
+  REASSEMBLE: 4,
+  GLOW_HOLD:  5,
+  DONE:       6,
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export default function OpeningSequence({ onComplete }) {
-  const meshRef = useRef()
+export default function OpeningSequence({ onComplete, arcSystemRef }) {
+  const { size } = useThree()
 
-  const state = useRef({
-    phase: 'idle',
-    homesTJ:      null,
-    homesDrawer:  null,
-    scatter:      null,
-    etchProgress: 0,
-    shatterProgress: 0,
-    reassembleProgress: 0,
-    holdProgress: 0,
-    doneProgress: 0,
-    needsInit: false,
-    dummy: new THREE.Object3D(),
-  })
+  const isMobile      = size.width < 768
+  const fragmentCount = isMobile ? MOBILE_FRAGMENT_COUNT : FRAGMENT_COUNT
 
-  const colorArray = useMemo(() => new Float32Array(FRAGMENT_COUNT * 3), [])
+  // ── Sampled letter positions ──────────────────────────────────────────────
+  const { tjPositions, drawerPositions } = useMemo(() => {
+    const canvasW = 1024
+    const canvasH = 256
 
+    const rawTJ = sampleLetterPositions('TJ',     canvasW, canvasH, 180, fragmentCount, 0.1)
+    const rawDR = sampleLetterPositions('DRAWER', canvasW, canvasH, 140, fragmentCount, 0.1)
+
+    const pad = (arr) => {
+      if (arr.length >= fragmentCount * 3) return arr.slice(0, fragmentCount * 3)
+      const out = new Float32Array(fragmentCount * 3)
+      out.set(arr)
+      return out
+    }
+
+    return {
+      tjPositions:     pad(rawTJ),
+      drawerPositions: pad(rawDR),
+    }
+  }, [fragmentCount])
+
+  // ── Refs ──────────────────────────────────────────────────────────────────
+  const meshRef      = useRef()
+  const materialRef  = useRef()
+  const fragState    = useRef(null)
+  const arcAccum     = useRef(0)
+  const phase        = useRef(PHASE.IDLE)
+  const phaseTime    = useRef(0)
+  const etchReveal   = useRef(0)
+  const completed    = useRef(false)
+  const idleTimerRef = useRef(null)
+
+  const dummy = useMemo(() => new THREE.Object3D(), [])
+  const _va   = useMemo(() => new THREE.Vector3(), [])
+  const _vb   = useMemo(() => new THREE.Vector3(), [])
+
+  // ── Geometry & material ───────────────────────────────────────────────────
+  const geometry = useMemo(() => new THREE.BoxGeometry(0.018, 0.018, 0.004), [])
+
+  const material = useMemo(() => new THREE.MeshBasicMaterial({
+    color:       CRIMSON,
+    transparent: true,
+    opacity:     0,
+    blending:    THREE.AdditiveBlending,
+    depthWrite:  false,
+  }), [])
+
+  useEffect(() => { materialRef.current = material }, [material])
+
+  // ── Init per-fragment state ───────────────────────────────────────────────
   useEffect(() => {
-    const s = state.current
-    const half = Math.floor(FRAGMENT_COUNT / 2)
+    const n = fragmentCount
 
-    const tjRaw     = sampleLetterPositions('TJ',     half,            TJ_SCALE_X,     TJ_SCALE_Y)
-    const drawerRaw = sampleLetterPositions('DRAWER', FRAGMENT_COUNT - half, DRAWER_SCALE_X, DRAWER_SCALE_Y)
+    fragState.current = {
+      px:        new Float32Array(n),
+      py:        new Float32Array(n),
+      pz:        new Float32Array(n),
+      vx:        new Float32Array(n),
+      vy:        new Float32Array(n),
+      vz:        new Float32Array(n),
+      opacity:   new Float32Array(n),
+      etchOrder: new Uint16Array(n),
+      revealed:  new Uint8Array(n),
+      pullDelay: new Float32Array(n),
+    }
 
-    // Pad to FRAGMENT_COUNT by repeating
-    s.homesTJ     = new Float32Array(FRAGMENT_COUNT * 3)
-    s.homesDrawer = new Float32Array(FRAGMENT_COUNT * 3)
-    s.scatter     = new Float32Array(FRAGMENT_COUNT * 3)
+    // Randomise etch reveal order (Fisher-Yates)
+    const order = Array.from({ length: n }, (_, i) => i)
+    for (let i = order.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1))
+      ;[order[i], order[j]] = [order[j], order[i]]
+    }
+    fragState.current.etchOrder.set(order)
 
-    for (let i = 0; i < FRAGMENT_COUNT; i++) {
-      const tj  = tjRaw[i % tjRaw.length]
-      const dr  = drawerRaw[i % drawerRaw.length]
-      const i3  = i * 3
+    for (let i = 0; i < n; i++) {
+      fragState.current.pullDelay[i] = Math.random() * 0.6
+    }
 
-      s.homesTJ[i3]     = tj.x
-      s.homesTJ[i3 + 1] = tj.y
-      s.homesTJ[i3 + 2] = 0
+    for (let i = 0; i < n; i++) {
+      fragState.current.px[i] = tjPositions[i * 3 + 0]
+      fragState.current.py[i] = tjPositions[i * 3 + 1]
+      fragState.current.pz[i] = tjPositions[i * 3 + 2]
+    }
 
-      s.homesDrawer[i3]     = dr.x
-      s.homesDrawer[i3 + 1] = dr.y
-      s.homesDrawer[i3 + 2] = 0
+    if (meshRef.current) {
+      const zeroMatrix = new THREE.Matrix4().makeScale(0, 0, 0)
+      for (let i = 0; i < n; i++) {
+        meshRef.current.setMatrixAt(i, zeroMatrix)
+      }
+      meshRef.current.instanceMatrix.needsUpdate = true
+    }
 
-      // Scatter: outward burst, moderate radius so reassemble reads clearly
+    idleTimerRef.current = setTimeout(() => {
+      phase.current      = PHASE.ETCH
+      phaseTime.current  = 0
+      etchReveal.current = 0
+    }, T_IDLE * 1000)
+
+    return () => {
+      if (idleTimerRef.current) clearTimeout(idleTimerRef.current)
+      geometry.dispose()
+      material.dispose()
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fragmentCount])
+
+  // ── Helpers ───────────────────────────────────────────────────────────────
+
+  const spawnRandomArcs = useCallback((count, intensityMult) => {
+    // Read .current here — guaranteed populated by the time arcs are needed
+    const sys = arcSystemRef?.current
+    if (!sys || !fragState.current) return
+
+    const fs    = fragState.current
+    const total = fragmentCount
+
+    for (let a = 0; a < count; a++) {
+      let idxA = -1, idxB = -1, att = 0
+
+      while (att++ < 20 && idxA < 0) {
+        const r = Math.floor(Math.random() * total)
+        if (fs.revealed[r] === 1) idxA = r
+      }
+      att = 0
+      while (att++ < 20 && idxB < 0) {
+        const r = Math.floor(Math.random() * total)
+        if (fs.revealed[r] === 1 && r !== idxA) idxB = r
+      }
+
+      if (idxA < 0 || idxB < 0) continue
+
+      _va.set(fs.px[idxA], fs.py[idxA], fs.pz[idxA])
+      _vb.set(fs.px[idxB], fs.py[idxB], fs.pz[idxB])
+
+      if (_va.distanceTo(_vb) < 0.8) {
+        sys.spawn(_va, _vb, intensityMult)
+      }
+    }
+  }, [arcSystemRef, fragmentCount, _va, _vb])
+
+  const startShatter = useCallback(() => {
+    if (!fragState.current) return
+    phase.current     = PHASE.SHATTER
+    phaseTime.current = 0
+
+    for (let i = 0; i < fragmentCount; i++) {
       const angle     = Math.random() * Math.PI * 2
-      const elevation = (Math.random() - 0.5) * Math.PI * 0.6
-      const radius    = 4 + Math.random() * 5
-      s.scatter[i3]     = Math.cos(angle) * Math.cos(elevation) * radius
-      s.scatter[i3 + 1] = Math.sin(elevation) * radius
-      s.scatter[i3 + 2] = (Math.random() - 0.5) * 1.5
+      const elevation = (Math.random() - 0.5) * Math.PI
+      const speed     = SCATTER_SPEED_MIN + Math.random() * (SCATTER_SPEED_MAX - SCATTER_SPEED_MIN)
+      fragState.current.vx[i] = Math.cos(angle) * Math.cos(elevation) * speed
+      fragState.current.vy[i] = Math.sin(elevation) * speed
+      fragState.current.vz[i] = Math.sin(angle) * Math.cos(elevation) * speed * 0.4
     }
+  }, [fragmentCount])
 
-    // Initial colors — crimson
-    for (let i = 0; i < FRAGMENT_COUNT; i++) {
-      colorArray[i * 3]     = CRIMSON.r
-      colorArray[i * 3 + 1] = CRIMSON.g
-      colorArray[i * 3 + 2] = CRIMSON.b
-    }
+  const startReassemble = useCallback(() => {
+    phase.current     = PHASE.REASSEMBLE
+    phaseTime.current = 0
+  }, [])
 
-    s.needsInit = true
+  // ── Frame loop ────────────────────────────────────────────────────────────
 
-    // ── GSAP timeline ─────────────────────────────────────────────────────────
-    const tl = gsap.timeline({ delay: 0.6 })
+  useFrame((_, delta) => {
+    if (!fragState.current || !meshRef.current || completed.current) return
 
-    // Phase 1: TJ etch — 2.5s
-    tl.to(s, {
-      etchProgress: 1,
-      duration: 2.5,
-      ease: 'power1.inOut',
-      onStart: () => { s.phase = 'etching' },
-    })
+    const fs  = fragState.current
+    const n   = fragmentCount
+    const t   = phaseTime.current
+    const mat = materialRef.current
+    phaseTime.current += delta
 
-    // Hold TJ formed — 1s
-    tl.to(s, { holdProgress: 1, duration: 0.3, ease: 'power2.out' })
-    tl.to(s, { holdProgress: 0.5, duration: 0.7, ease: 'power1.out' })
+    let arcRate      = 0
+    let arcIntensity = 1.0
 
-    // Phase 2: Shatter — 0.5s
-    tl.to(s, {
-      shatterProgress: 1,
-      duration: 0.5,
-      ease: 'power3.in',
-      onStart: () => { s.phase = 'shatter' },
-    })
+    switch (phase.current) {
 
-    // Chaos hold — 0.35s
-    tl.to(s, { duration: 0.35 })
+      case PHASE.ETCH: {
+        const progress     = Math.min(t / T_ETCH, 1.0)
+        const targetReveal = Math.floor(progress * n)
 
-    // Phase 3: Reassemble into DRAWER — 1.8s
-    tl.to(s, {
-      reassembleProgress: 1,
-      duration: 1.8,
-      ease: 'power2.inOut',
-      onStart: () => { s.phase = 'reassemble' },
-    })
-
-    // Hold DRAWER — 1.5s with glow pulse
-    tl.to(s, { holdProgress: 1, duration: 0.4, ease: 'power2.out',
-      onStart: () => { s.phase = 'hold' },
-    })
-    tl.to(s, { holdProgress: 0, duration: 1.1, ease: 'power2.in' })
-
-    // Phase 4: Clear — fast scale to zero, then fire onComplete
-    tl.to(s, {
-      doneProgress: 1,
-      duration: 0.6,
-      ease: 'power2.in',
-      onStart: () => { s.phase = 'done' },
-      onComplete: () => { if (onComplete) onComplete() },
-    })
-
-    return () => { tl.kill() }
-  }, []) // eslint-disable-line
-
-  useFrame(({ clock }) => {
-    const s     = state.current
-    const mesh  = meshRef.current
-    if (!mesh || !s.homesTJ) return
-
-    // First-frame init — mesh ref now committed
-    if (s.needsInit) {
-      s.needsInit = false
-      const d = s.dummy
-      for (let i = 0; i < FRAGMENT_COUNT; i++) {
-        d.position.set(s.homesTJ[i*3], s.homesTJ[i*3+1], 0)
-        d.scale.setScalar(0)
-        d.updateMatrix()
-        mesh.setMatrixAt(i, d.matrix)
-      }
-      mesh.instanceMatrix.needsUpdate = true
-      mesh.instanceColor = new THREE.InstancedBufferAttribute(colorArray, 3)
-      mesh.instanceColor.needsUpdate = true
-      return
-    }
-
-    const d = s.dummy
-    const t = clock.getElapsedTime()
-
-    // ── etching ───────────────────────────────────────────────────────────────
-    if (s.phase === 'etching') {
-      const reveal = Math.floor(s.etchProgress * FRAGMENT_COUNT)
-
-      for (let i = 0; i < FRAGMENT_COUNT; i++) {
-        const i3 = i * 3
-        if (i < reveal) {
-          // Micro-drift once placed
-          d.position.set(
-            s.homesTJ[i3]     + Math.sin(t * 3 + i * 0.7) * 0.003,
-            s.homesTJ[i3 + 1] + Math.cos(t * 2.5 + i * 0.5) * 0.003,
-            0
-          )
-          d.scale.setScalar(FRAGMENT_SIZE)
-
-          // Newest fragments: white. Settled fragments: crimson.
-          const freshness = Math.max(0, 1 - (reveal - i) / 60)
-          colorArray[i3]     = CRIMSON.r + (WHITE.r - CRIMSON.r) * freshness
-          colorArray[i3 + 1] = CRIMSON.g + (WHITE.g - CRIMSON.g) * freshness
-          colorArray[i3 + 2] = CRIMSON.b + (WHITE.b - CRIMSON.b) * freshness
-        } else {
-          d.position.set(s.homesTJ[i3], s.homesTJ[i3+1], 0)
-          d.scale.setScalar(0)
+        for (let r = etchReveal.current; r < targetReveal; r++) {
+          const idx = fs.etchOrder[r]
+          fs.revealed[idx] = 1
+          fs.opacity[idx]  = 1.0
         }
-        d.updateMatrix()
-        mesh.setMatrixAt(i, d.matrix)
+        etchReveal.current = targetReveal
+
+        for (let i = 0; i < n; i++) {
+          if (fs.revealed[i] === 1) {
+            dummy.position.set(fs.px[i], fs.py[i], fs.pz[i])
+            dummy.rotation.set(
+              (Math.random() - 0.5) * 0.2,
+              (Math.random() - 0.5) * 0.2,
+              (Math.random() - 0.5) * 0.2
+            )
+            dummy.scale.setScalar(1)
+            dummy.updateMatrix()
+            meshRef.current.setMatrixAt(i, dummy.matrix)
+          }
+        }
+
+        if (mat) mat.opacity = 1.0
+        arcRate      = ARC_RATE_ETCH
+        arcIntensity = 0.8
+
+        if (progress >= 1.0) {
+          for (let i = 0; i < n; i++) fs.revealed[i] = 1
+          phase.current     = PHASE.HOLD_TJ
+          phaseTime.current = 0
+        }
+        break
+      }
+
+      case PHASE.HOLD_TJ: {
+        arcRate      = ARC_RATE_HOLD_TJ
+        arcIntensity = 0.6
+        if (t >= T_HOLD_TJ) startShatter()
+        break
+      }
+
+      case PHASE.SHATTER: {
+        arcRate              = ARC_RATE_SHATTER
+        arcIntensity         = 1.2
+        const flightProgress = Math.min(t / T_SHATTER, 1.0)
+
+        for (let i = 0; i < n; i++) {
+          fs.px[i] += fs.vx[i] * delta
+          fs.py[i] += (fs.vy[i] + GRAVITY * flightProgress) * delta
+          fs.pz[i] += fs.vz[i] * delta
+
+          dummy.position.set(fs.px[i], fs.py[i], fs.pz[i])
+          const spin = delta * 4
+          dummy.rotation.x += (Math.random() - 0.5) * spin
+          dummy.rotation.y += (Math.random() - 0.5) * spin
+          dummy.scale.setScalar(1)
+          dummy.updateMatrix()
+          meshRef.current.setMatrixAt(i, dummy.matrix)
+        }
+
+        if (flightProgress >= 1.0) startReassemble()
+        break
+      }
+
+      case PHASE.REASSEMBLE: {
+        arcRate      = ARC_RATE_REASSEMBLE
+        arcIntensity = 1.0
+        let allLocked = true
+
+        for (let i = 0; i < n; i++) {
+          const delay    = fs.pullDelay[i]
+          const localT   = Math.max(0, t - delay)
+          const localDur = T_REASSEMBLE - delay
+          const p        = localDur > 0 ? Math.min(localT / localDur, 1.0) : 1.0
+          const ease     = 1.0 - Math.pow(1.0 - p, PULL_EASE)
+
+          const tx = drawerPositions[i * 3 + 0]
+          const ty = drawerPositions[i * 3 + 1]
+          const tz = drawerPositions[i * 3 + 2]
+
+          fs.px[i] += (tx - fs.px[i]) * ease * delta * 6
+          fs.py[i] += (ty - fs.py[i]) * ease * delta * 6
+          fs.pz[i] += (tz - fs.pz[i]) * ease * delta * 6
+
+          dummy.position.set(fs.px[i], fs.py[i], fs.pz[i])
+          dummy.rotation.set(0, 0, 0)
+          dummy.scale.setScalar(1)
+          dummy.updateMatrix()
+          meshRef.current.setMatrixAt(i, dummy.matrix)
+
+          if (p < 0.98) allLocked = false
+        }
+
+        if (allLocked || t >= T_REASSEMBLE + 0.3) {
+          for (let i = 0; i < n; i++) {
+            fs.px[i] = drawerPositions[i * 3 + 0]
+            fs.py[i] = drawerPositions[i * 3 + 1]
+            fs.pz[i] = drawerPositions[i * 3 + 2]
+            dummy.position.set(fs.px[i], fs.py[i], fs.pz[i])
+            dummy.rotation.set(0, 0, 0)
+            dummy.scale.setScalar(1)
+            dummy.updateMatrix()
+            meshRef.current.setMatrixAt(i, dummy.matrix)
+          }
+          phase.current     = PHASE.GLOW_HOLD
+          phaseTime.current = 0
+        }
+        break
+      }
+
+      case PHASE.GLOW_HOLD: {
+        const fadeRatio  = Math.max(0, 1.0 - t / T_GLOW_HOLD)
+        arcRate          = ARC_RATE_GLOW_HOLD * fadeRatio
+        arcIntensity     = 0.5 * fadeRatio
+        if (mat) mat.opacity = 0.85 + 0.15 * Math.sin(t * 6)
+
+        if (t >= T_GLOW_HOLD) {
+          phase.current     = PHASE.DONE
+          completed.current = true
+          if (onComplete) onComplete()
+        }
+        break
+      }
+
+      default:
+        break
+    }
+
+    // Arc spawning
+    if (arcRate > 0) {
+      arcAccum.current += arcRate * delta
+      const toSpawn = Math.floor(arcAccum.current)
+      if (toSpawn > 0) {
+        arcAccum.current -= toSpawn
+        spawnRandomArcs(toSpawn, arcIntensity)
       }
     }
 
-    // ── shatter ───────────────────────────────────────────────────────────────
-    else if (s.phase === 'shatter') {
-      const sp = s.shatterProgress
-      for (let i = 0; i < FRAGMENT_COUNT; i++) {
-        const i3  = i * 3
-        const lag = (i / FRAGMENT_COUNT) * 0.2
-        const lt  = Math.max(0, Math.min(1, (sp - lag) / (1 - lag)))
-        const e   = lt * lt * (3 - 2 * lt) // smoothstep
-
-        d.position.set(
-          s.homesTJ[i3]     + (s.scatter[i3]     - s.homesTJ[i3])     * e,
-          s.homesTJ[i3 + 1] + (s.scatter[i3 + 1] - s.homesTJ[i3 + 1]) * e,
-          s.scatter[i3 + 2] * e
-        )
-        d.scale.setScalar(FRAGMENT_SIZE * (1 - e * 0.4))
-        d.rotation.set(e * Math.PI * 2 * (i % 2 ? 1 : -1), e * Math.PI * 3, 0)
-
-        // Flash white on explosion
-        const flash = 1 - e
-        colorArray[i3]     = CRIMSON.r + (WHITE.r - CRIMSON.r) * flash * 0.7
-        colorArray[i3 + 1] = CRIMSON.g + (WHITE.g - CRIMSON.g) * flash * 0.4
-        colorArray[i3 + 2] = CRIMSON.b
-
-        d.updateMatrix()
-        mesh.setMatrixAt(i, d.matrix)
-      }
-    }
-
-    // ── reassemble ────────────────────────────────────────────────────────────
-    else if (s.phase === 'reassemble') {
-      const rp = s.reassembleProgress
-      for (let i = 0; i < FRAGMENT_COUNT; i++) {
-        const i3  = i * 3
-        const lag = (i / FRAGMENT_COUNT) * 0.35
-        const lt  = Math.max(0, Math.min(1, (rp - lag) / (1 - lag)))
-        const e   = 1 - Math.pow(1 - lt, 3) // ease out cubic — magnetic snap
-
-        d.position.set(
-          s.scatter[i3]     + (s.homesDrawer[i3]     - s.scatter[i3])     * e,
-          s.scatter[i3 + 1] + (s.homesDrawer[i3 + 1] - s.scatter[i3 + 1]) * e,
-          s.scatter[i3 + 2] * (1 - e)
-        )
-        d.scale.setScalar(FRAGMENT_SIZE * (0.6 + e * 0.4))
-        d.rotation.set((1 - e) * Math.PI, (1 - e) * Math.PI * 1.5, 0)
-
-        // Transit: white flash as it snaps in, then crimson
-        const snap = Math.max(0, 1 - (e - 0.8) / 0.2) * (e > 0.8 ? 1 : 0)
-        colorArray[i3]     = CRIMSON.r + (WHITE.r - CRIMSON.r) * snap * 0.8
-        colorArray[i3 + 1] = CRIMSON.g + (WHITE.g - CRIMSON.g) * snap * 0.5
-        colorArray[i3 + 2] = CRIMSON.b + (WHITE.b - CRIMSON.b) * snap * 0.3
-
-        d.updateMatrix()
-        mesh.setMatrixAt(i, d.matrix)
-      }
-    }
-
-    // ── hold ──────────────────────────────────────────────────────────────────
-    else if (s.phase === 'hold') {
-      const glow = s.holdProgress * (0.8 + Math.sin(t * 10) * 0.2)
-
-      for (let i = 0; i < FRAGMENT_COUNT; i++) {
-        const i3 = i * 3
-        d.position.set(
-          s.homesDrawer[i3]     + Math.sin(t * 2 + i * 0.6) * 0.003 * glow,
-          s.homesDrawer[i3 + 1] + Math.cos(t * 1.7 + i * 0.8) * 0.003 * glow,
-          0
-        )
-        d.scale.setScalar(FRAGMENT_SIZE)
-        d.rotation.set(0, 0, 0)
-
-        // Pulse between crimson and white+crimson
-        colorArray[i3]     = CRIMSON.r + (WHITE.r - CRIMSON.r) * glow * 0.5
-        colorArray[i3 + 1] = CRIMSON.g + (WHITE.g - CRIMSON.g) * glow * 0.3
-        colorArray[i3 + 2] = CRIMSON.b + (WHITE.b - CRIMSON.b) * glow * 0.2
-
-        d.updateMatrix()
-        mesh.setMatrixAt(i, d.matrix)
-      }
-    }
-
-    // ── done — scale to zero fast, screen clears ──────────────────────────────
-    else if (s.phase === 'done') {
-      const dp = s.doneProgress
-      // Staggered scale-out: first fragments disappear first
-      for (let i = 0; i < FRAGMENT_COUNT; i++) {
-        const i3  = i * 3
-        const lag = (i / FRAGMENT_COUNT) * 0.4
-        const lt  = Math.max(0, Math.min(1, (dp - lag) / (1 - lag)))
-
-        d.position.set(s.homesDrawer[i3], s.homesDrawer[i3+1], 0)
-        d.scale.setScalar(FRAGMENT_SIZE * (1 - lt))
-
-        colorArray[i3]     = CRIMSON.r
-        colorArray[i3 + 1] = CRIMSON.g
-        colorArray[i3 + 2] = CRIMSON.b
-
-        d.updateMatrix()
-        mesh.setMatrixAt(i, d.matrix)
-      }
-    }
-
-    mesh.instanceMatrix.needsUpdate = true
-    if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true
+    meshRef.current.instanceMatrix.needsUpdate = true
   })
 
   return (
     <instancedMesh
       ref={meshRef}
-      args={[null, null, FRAGMENT_COUNT]}
+      args={[geometry, material, fragmentCount]}
       frustumCulled={false}
-    >
-      <tetrahedronGeometry args={[FRAGMENT_SIZE, 0]} />
-      <meshBasicMaterial
-        transparent
-        blending={THREE.AdditiveBlending}
-        depthWrite={false}
-        toneMapped={false}
-      />
-    </instancedMesh>
+    />
   )
 }
