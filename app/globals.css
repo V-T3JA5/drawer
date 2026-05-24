@@ -1,0 +1,81 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #0a0a0a;
+  --text: #E8E8E8;
+  --crimson-inner: #4a0010;
+  --crimson-mid: #7a0020;
+  --crimson-outer: #DC143C;
+  --glass-bg: rgba(17, 17, 17, 0.45);
+  --glass-border: rgba(255, 255, 255, 0.06);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body {
+  background-color: var(--bg);
+  color: var(--text);
+  cursor: none;
+  font-family: 'Courier New', Courier, monospace;
+  overflow-x: hidden;
+}
+
+.glow-text {
+  text-shadow:
+    0 0 10px var(--crimson-inner),
+    0 0 30px var(--crimson-mid),
+    0 0 60px #DC143C44,
+    0 0 100px #DC143C22;
+}
+
+.glass-card {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* Lightsaber line animation */
+@keyframes ignite {
+  from { stroke-dashoffset: var(--path-length); }
+  to   { stroke-dashoffset: 0; }
+}
+
+@keyframes retract {
+  from { stroke-dashoffset: 0; }
+  to   { stroke-dashoffset: var(--path-length); }
+}
+
+.lightsaber-line {
+  stroke: #E8E8E8;
+  stroke-dasharray: var(--path-length);
+  stroke-dashoffset: var(--path-length);
+  filter: drop-shadow(0 0 4px #DC143C) drop-shadow(0 0 12px #7a0020);
+  animation: ignite 400ms ease-out forwards;
+}
+
+.lightsaber-line.retract {
+  animation: retract 250ms ease-in forwards;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 4px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--crimson-mid);
+  border-radius: 2px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--crimson-outer);
+}
