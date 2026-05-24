@@ -9,17 +9,17 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "next": "14.2.5",
+    "next": "14.2.3",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "three": "0.128.0",
-    "framer-motion": "^11.3.0"
+    "framer-motion": "^11.2.10"
   },
   "devDependencies": {
     "autoprefixer": "^10.4.19",
-    "postcss": "^8.4.39",
-    "tailwindcss": "^3.4.6",
-    "eslint": "^8.57.0",
-    "eslint-config-next": "14.2.5"
+    "postcss": "^8.4.38",
+    "tailwindcss": "^3.4.4",
+    "eslint": "^8",
+    "eslint-config-next": "14.2.3"
   }
 }
