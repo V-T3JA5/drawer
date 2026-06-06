@@ -1,0 +1,128 @@
+{
+  "weeks": [
+    {
+      "id": 1,
+      "title": "Lines & Lettering",
+      "description": "Foundation of all technical drawing — line types, weights, and standard lettering.",
+      "questions": [
+        { "id": 1, "title": "Types of Lines in EGD", "steps": 24 },
+        { "id": 2, "title": "Line Weights & Thickness", "steps": 18 },
+        { "id": 3, "title": "Standard EGD Lettering", "steps": 30 },
+        { "id": 4, "title": "Title Block Setup", "steps": 20 }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Geometric Constructions",
+      "description": "Constructing geometric shapes accurately using compass and straight edge.",
+      "questions": [
+        { "id": 1, "title": "Bisecting Lines & Angles", "steps": 22 },
+        { "id": 2, "title": "Drawing Polygons", "steps": 28 },
+        { "id": 3, "title": "Tangent Lines & Arcs", "steps": 35 },
+        { "id": 4, "title": "Ellipses & Curves", "steps": 30 },
+        { "id": 5, "title": "Spiral & Helix Construction", "steps": 20 }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Orthographic Views",
+      "description": "Representing 3D objects in 2D using front, top and side projections.",
+      "questions": [
+        { "id": 1, "title": "First Angle Projection", "steps": 40 },
+        { "id": 2, "title": "Third Angle Projection", "steps": 38 },
+        { "id": 3, "title": "Hidden Detail Lines", "steps": 22 },
+        { "id": 4, "title": "Reading Orthographic Views", "steps": 35 }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Sectional Views",
+      "description": "Cutting through objects to reveal internal features clearly.",
+      "questions": [
+        { "id": 1, "title": "Full Sections", "steps": 28 },
+        { "id": 2, "title": "Half Sections", "steps": 25 },
+        { "id": 3, "title": "Offset Sections", "steps": 30 },
+        { "id": 4, "title": "Hatching Conventions", "steps": 18 }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Auxiliary Views",
+      "description": "Drawing true shapes of inclined surfaces using auxiliary projection.",
+      "questions": [
+        { "id": 1, "title": "Primary Auxiliary Views", "steps": 35 },
+        { "id": 2, "title": "Secondary Auxiliary Views", "steps": 40 },
+        { "id": 3, "title": "True Length of Lines", "steps": 28 },
+        { "id": 4, "title": "True Shape of Planes", "steps": 32 }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "Isometric Drawing",
+      "description": "Drawing objects in 3D using a 30° isometric grid.",
+      "questions": [
+        { "id": 1, "title": "Isometric Axes & Grid", "steps": 22 },
+        { "id": 2, "title": "Isometric Circles & Ellipses", "steps": 35 },
+        { "id": 3, "title": "Simple Isometric Objects", "steps": 28 },
+        { "id": 4, "title": "Complex Isometric Objects", "steps": 45 },
+        { "id": 5, "title": "Isometric from Ortho Views", "steps": 50 }
+      ]
+    },
+    {
+      "id": 7,
+      "title": "Dimensioning",
+      "description": "Adding accurate measurements and tolerances to technical drawings.",
+      "questions": [
+        { "id": 1, "title": "Dimensioning Rules & Standards", "steps": 20 },
+        { "id": 2, "title": "Linear Dimensioning", "steps": 24 },
+        { "id": 3, "title": "Angular & Radial Dimensions", "steps": 28 },
+        { "id": 4, "title": "Tolerancing Basics", "steps": 22 }
+      ]
+    },
+    {
+      "id": 8,
+      "title": "Assembly Drawings",
+      "description": "Showing how multiple parts fit and work together.",
+      "questions": [
+        { "id": 1, "title": "Parts Lists & Balloons", "steps": 20 },
+        { "id": 2, "title": "Exploded Assembly Views", "steps": 38 },
+        { "id": 3, "title": "Working Assembly Drawings", "steps": 42 },
+        { "id": 4, "title": "Detail Drawings", "steps": 30 }
+      ]
+    },
+    {
+      "id": 9,
+      "title": "Oblique Drawing",
+      "description": "Cabinet and cavalier oblique projection techniques.",
+      "questions": [
+        { "id": 1, "title": "Cavalier Oblique Projection", "steps": 24 },
+        { "id": 2, "title": "Cabinet Oblique Projection", "steps": 26 },
+        { "id": 3, "title": "Oblique Circles & Curves", "steps": 30 },
+        { "id": 4, "title": "Oblique from Ortho Views", "steps": 35 }
+      ]
+    },
+    {
+      "id": 10,
+      "title": "Perspective Drawing",
+      "description": "One-point and two-point perspective for realistic representations.",
+      "questions": [
+        { "id": 1, "title": "One-Point Perspective", "steps": 32 },
+        { "id": 2, "title": "Two-Point Perspective", "steps": 40 },
+        { "id": 3, "title": "Perspective of Circles", "steps": 28 },
+        { "id": 4, "title": "Interior Perspective", "steps": 35 },
+        { "id": 5, "title": "Exterior Perspective", "steps": 38 }
+      ]
+    },
+    {
+      "id": 11,
+      "title": "CAD Fundamentals",
+      "description": "Introduction to Computer Aided Design — translating hand skills to digital.",
+      "questions": [
+        { "id": 1, "title": "CAD Interface & Tools", "steps": 20 },
+        { "id": 2, "title": "2D CAD Drawing", "steps": 35 },
+        { "id": 3, "title": "3D Modelling Basics", "steps": 42 },
+        { "id": 4, "title": "Printing & Plotting", "steps": 18 }
+      ]
+    }
+  ]
+}
