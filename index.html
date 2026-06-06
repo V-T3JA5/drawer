@@ -16,14 +16,12 @@
       justify-content: center;
       z-index: 200;
       flex-direction: column;
-      gap: 0;
     }
 
     #intro-letters {
       display: flex;
       align-items: center;
       justify-content: center;
-      overflow: hidden;
     }
 
     .intro-char {
@@ -38,7 +36,7 @@
       letter-spacing: 0.06em;
     }
     .intro-char.visible { opacity: 1; transform: translateY(0); }
-    .intro-char.exit { opacity: 0; transform: translateY(-40px); }
+    .intro-char.exit    { opacity: 0; transform: translateY(-40px); }
 
     #intro-bar {
       width: 0;
@@ -59,12 +57,47 @@
       transition: opacity 0.5s ease;
     }
 
-    /* HERO */
+    /* NAV — DRAWER centered */
+    .home-nav {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: rgba(13,13,13,0.92);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border);
+      padding: 22px 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    .home-nav-logo {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 30px;
+      color: var(--crimson-bright);
+      letter-spacing: 0.12em;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .home-nav-tagline {
+      position: absolute;
+      right: 48px;
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 10px;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+    }
+
+    /* HERO — compact, no stats */
     .hero {
-      padding: 72px 48px 56px;
+      padding: 56px 48px 40px;
       position: relative;
       overflow: hidden;
-      min-height: 380px;
     }
 
     .hero-eyebrow {
@@ -73,53 +106,33 @@
       letter-spacing: 0.3em;
       text-transform: uppercase;
       color: var(--crimson);
-      margin-bottom: 20px;
+      margin-bottom: 18px;
       display: flex;
       align-items: center;
       gap: 12px;
     }
     .hero-eyebrow::before {
       content: '';
-      width: 32px; height: 1px;
+      width: 28px; height: 1px;
       background: var(--crimson);
     }
 
     .hero-title {
       font-family: 'Bebas Neue', sans-serif;
-      font-size: clamp(52px, 9vw, 108px);
+      font-size: clamp(48px, 8vw, 96px);
       line-height: 0.92;
       color: var(--text);
       letter-spacing: 0.02em;
-      margin-bottom: 24px;
+      margin-bottom: 20px;
     }
     .hero-title .accent { color: var(--crimson-bright); }
 
     .hero-desc {
-      font-size: 15px;
+      font-size: 14px;
       color: var(--text-mid);
       font-weight: 300;
-      max-width: 460px;
+      max-width: 440px;
       line-height: 1.75;
-      margin-bottom: 44px;
-    }
-
-    .hero-stats {
-      display: flex;
-      gap: 44px;
-    }
-    .stat-num {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 34px;
-      color: var(--crimson-bright);
-      line-height: 1;
-    }
-    .stat-label {
-      font-family: 'Barlow Condensed', sans-serif;
-      font-size: 10px;
-      letter-spacing: 0.22em;
-      text-transform: uppercase;
-      color: var(--text-dim);
-      margin-top: 3px;
     }
 
     .hero-deco {
@@ -127,13 +140,13 @@
       right: 40px;
       top: 50%;
       transform: translateY(-50%);
-      opacity: 0.055;
+      opacity: 0.05;
       pointer-events: none;
     }
 
-    /* SECTION */
+    /* SECTION LABEL */
     .section-label {
-      padding: 40px 48px 24px;
+      padding: 36px 48px 22px;
       font-family: 'Barlow Condensed', sans-serif;
       font-size: 10px;
       letter-spacing: 0.3em;
@@ -152,7 +165,7 @@
 
     /* CARDS */
     .cards-grid {
-      padding: 0 48px 72px;
+      padding: 0 48px 0;
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
       gap: 14px;
@@ -227,7 +240,7 @@
       transition: color 0.3s;
       user-select: none;
     }
-    .week-card:hover .card-ghost-num { color: rgba(192,22,42,0.16); }
+    .week-card:hover .card-ghost-num { color: rgba(192,22,42,0.18); }
 
     .card-arrow {
       position: absolute;
@@ -249,13 +262,69 @@
       border-color: var(--border-bright);
     }
     .card-arrow svg { color: var(--crimson-bright); }
+
+    /* TJ WATERMARK FOOTER */
+    .tj-watermark-wrap {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 56px 0 40px;
+      overflow: hidden;
+      margin-top: 8px;
+    }
+
+    .tj-watermark {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(120px, 22vw, 260px);
+      color: transparent;
+      letter-spacing: 0.08em;
+      line-height: 1;
+      user-select: none;
+      pointer-events: none;
+      /* Crimson glow outline */
+      -webkit-text-stroke: 1px rgba(192, 22, 42, 0.35);
+      text-shadow:
+        0 0 40px rgba(192, 22, 42, 0.25),
+        0 0 80px rgba(192, 22, 42, 0.12),
+        0 0 140px rgba(192, 22, 42, 0.06);
+      animation: tj-pulse 4s ease-in-out infinite;
+    }
+
+    @keyframes tj-pulse {
+      0%, 100% {
+        -webkit-text-stroke: 1px rgba(192, 22, 42, 0.35);
+        text-shadow:
+          0 0 40px rgba(192, 22, 42, 0.25),
+          0 0 80px rgba(192, 22, 42, 0.12),
+          0 0 140px rgba(192, 22, 42, 0.06);
+      }
+      50% {
+        -webkit-text-stroke: 1px rgba(232, 25, 47, 0.55);
+        text-shadow:
+          0 0 40px rgba(232, 25, 47, 0.45),
+          0 0 80px rgba(232, 25, 47, 0.22),
+          0 0 160px rgba(232, 25, 47, 0.1);
+      }
+    }
+
+    .tj-watermark-line {
+      position: absolute;
+      bottom: 38px;
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 10px;
+      letter-spacing: 0.35em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      opacity: 0.5;
+    }
   </style>
 </head>
 <body>
 
   <!-- CURSOR -->
   <div id="cursor">
-    <svg width="30" height="30" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <svg width="30" height="30" viewBox="0 0 30 30" fill="none">
       <line x1="15" y1="0" x2="15" y2="11.5" stroke="#E8192F" stroke-width="1.5"/>
       <line x1="15" y1="18.5" x2="15" y2="30" stroke="#E8192F" stroke-width="1.5"/>
       <line x1="0" y1="15" x2="11.5" y2="15" stroke="#E8192F" stroke-width="1.5"/>
@@ -274,15 +343,16 @@
   <!-- MAIN PAGE -->
   <div class="page" id="main">
 
-    <nav style="position:sticky;top:0;z-index:50;background:rgba(13,13,13,0.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--border);padding:20px 48px;display:flex;align-items:center;justify-content:space-between;">
-      <a href="index.html" class="nav-logo">
+    <!-- NAV: DRAWER centered -->
+    <nav class="home-nav" style="position:sticky;top:0;z-index:50;">
+      <a href="index.html" class="home-nav-logo">
         <div class="nav-dot"></div>
         DRAWER
       </a>
-      <div class="nav-center">Engineering Graphics & Design</div>
-      <div class="nav-right">11 Weeks</div>
+      <div class="home-nav-tagline">Your EGD Guide</div>
     </nav>
 
+    <!-- HERO: no stats -->
     <section class="hero">
       <div class="corner-mark tl"></div>
       <div class="corner-mark tr"></div>
@@ -294,48 +364,35 @@
         MASTER<br><span class="accent">TECHNICAL</span><br>DRAWING
       </h1>
       <p class="hero-desc">
-        A step-by-step guide through Engineering Graphics & Design.
+        A step-by-step guide through Engineering Graphics &amp; Design.
         Each week builds on the last — from basic line work to complex isometric projections.
       </p>
-      <div class="hero-stats">
-        <div>
-          <div class="stat-num">11</div>
-          <div class="stat-label">Weeks</div>
-        </div>
-        <div>
-          <div class="stat-num">44+</div>
-          <div class="stat-label">Topics</div>
-        </div>
-        <div>
-          <div class="stat-num">500+</div>
-          <div class="stat-label">Steps</div>
-        </div>
-      </div>
 
       <div class="hero-deco">
-        <svg width="300" height="300" viewBox="0 0 300 300" fill="none">
-          <circle cx="150" cy="150" r="110" stroke="#C0162A" stroke-width="1"/>
-          <circle cx="150" cy="150" r="70" stroke="#C0162A" stroke-width="1"/>
-          <circle cx="150" cy="150" r="30" stroke="#C0162A" stroke-width="1"/>
-          <line x1="150" y1="10" x2="150" y2="290" stroke="#C0162A" stroke-width="0.8"/>
-          <line x1="10" y1="150" x2="290" y2="150" stroke="#C0162A" stroke-width="0.8"/>
-          <line x1="72" y1="72" x2="228" y2="228" stroke="#C0162A" stroke-width="0.5" stroke-dasharray="4 4"/>
-          <line x1="228" y1="72" x2="72" y2="228" stroke="#C0162A" stroke-width="0.5" stroke-dasharray="4 4"/>
-          <rect x="146" y="146" width="8" height="8" stroke="#C0162A" stroke-width="1" fill="none"/>
+        <svg width="280" height="280" viewBox="0 0 280 280" fill="none">
+          <circle cx="140" cy="140" r="100" stroke="#C0162A" stroke-width="1"/>
+          <circle cx="140" cy="140" r="64" stroke="#C0162A" stroke-width="1"/>
+          <circle cx="140" cy="140" r="28" stroke="#C0162A" stroke-width="1"/>
+          <line x1="140" y1="10" x2="140" y2="270" stroke="#C0162A" stroke-width="0.8"/>
+          <line x1="10" y1="140" x2="270" y2="140" stroke="#C0162A" stroke-width="0.8"/>
+          <line x1="69" y1="69" x2="211" y2="211" stroke="#C0162A" stroke-width="0.5" stroke-dasharray="4 4"/>
+          <line x1="211" y1="69" x2="69" y2="211" stroke="#C0162A" stroke-width="0.5" stroke-dasharray="4 4"/>
+          <rect x="136.5" y="136.5" width="7" height="7" stroke="#C0162A" stroke-width="1" fill="none"/>
         </svg>
       </div>
     </section>
 
     <div class="divider"></div>
 
-    <div class="section-label">Course Outline — Select a Week</div>
+    <div class="section-label">Course Outline</div>
 
     <div class="cards-grid" id="cards-grid"></div>
 
-    <footer>
-      <span>DRAWER &nbsp;·&nbsp; EGD Guide</span>
-      <span>Select a week to begin →</span>
-    </footer>
+    <!-- TJ WATERMARK -->
+    <div class="tj-watermark-wrap">
+      <div class="tj-watermark">TJ</div>
+      <div class="tj-watermark-line">DRAWER &nbsp;·&nbsp; EGD Guide</div>
+    </div>
 
   </div>
 
@@ -379,9 +436,9 @@
     // INTRO ANIMATION
     const introEl = document.getElementById('intro');
     const lettersEl = document.getElementById('intro-letters');
-    const barEl = document.getElementById('intro-bar');
-    const subEl = document.getElementById('intro-sub');
-    const mainEl = document.getElementById('main');
+    const barEl    = document.getElementById('intro-bar');
+    const subEl    = document.getElementById('intro-sub');
+    const mainEl   = document.getElementById('main');
 
     function showChars(chars, delayMs = 80) {
       lettersEl.innerHTML = '';
@@ -407,23 +464,19 @@
     async function runIntro() {
       await new Promise(r => setTimeout(r, 300));
 
-      // Show TJ
-      const tjSpans = showChars(['T', 'J'], 150);
+      const tjSpans = showChars(['T','J'], 150);
       setTimeout(() => { barEl.style.width = '60px'; }, 100);
       await new Promise(r => setTimeout(r, 1300));
 
-      // Hide TJ
       await hideChars(tjSpans);
       barEl.style.width = '0';
       await new Promise(r => setTimeout(r, 180));
 
-      // Show DRAWER
       showChars(['D','R','A','W','E','R'], 65);
       setTimeout(() => { barEl.style.width = '148px'; }, 80);
       setTimeout(() => { subEl.style.opacity = '1'; }, 500);
       await new Promise(r => setTimeout(r, 1500));
 
-      // Transition to main
       introEl.style.transition = 'opacity 0.65s ease';
       introEl.style.opacity = '0';
       mainEl.classList.add('visible');
