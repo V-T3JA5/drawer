@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 400">
+  <rect width="600" height="400" fill="#0a0a0a"/>
+  <rect x="20" y="20" width="560" height="360" fill="none" stroke="#c97a1f" stroke-width="2" stroke-dasharray="6 6"/>
+  <line x1="20" y1="20" x2="580" y2="380" stroke="#c97a1f" stroke-width="1" opacity="0.3"/>
+  <line x1="580" y1="20" x2="20" y2="380" stroke="#c97a1f" stroke-width="1" opacity="0.3"/>
+  <text x="300" y="210" font-family="monospace" font-size="22" fill="#e8890a" text-anchor="middle">POST-LAB DIAGRAM</text>
+  <text x="300" y="235" font-family="monospace" font-size="12" fill="#7a5a30" text-anchor="middle">placeholder — replace this file</text>
+</svg>
