@@ -1,0 +1,289 @@
+{
+  "generatedAt": "2026-07-07T10:53:10.749Z",
+  "totalWeeks": 11,
+  "weeks": [
+    {
+      "id": 1,
+      "hasContent": true,
+      "title": "Orthographic Projections",
+      "desc": "Construct front, top, and side views of a 3D object using first-angle projection.",
+      "cover": "/content/week1/w1_cover.svg",
+      "theory": {
+        "prelab": {
+          "hasText": true,
+          "image": "/content/week1/w1_prelab.svg"
+        },
+        "postlab": {
+          "hasText": true,
+          "image": "/content/week1/w1_postlab.svg"
+        },
+        "procedure": {
+          "hasText": true,
+          "image": "/content/week1/w1_procedure.svg"
+        }
+      },
+      "questions": [
+        {
+          "id": 1,
+          "title": "Draw the Front View",
+          "stepCount": 3,
+          "steps": [
+            {
+              "id": 1,
+              "hasText": true,
+              "image": "/content/week1/w1_q1_s1.svg"
+            },
+            {
+              "id": 2,
+              "hasText": true,
+              "image": "/content/week1/w1_q1_s2.svg"
+            },
+            {
+              "id": 3,
+              "hasText": true,
+              "image": "/content/week1/w1_q1_s3.svg"
+            }
+          ]
+        },
+        {
+          "id": 2,
+          "title": "Draw the Top View",
+          "stepCount": 2,
+          "steps": [
+            {
+              "id": 1,
+              "hasText": true,
+              "image": "/content/week1/w1_q2_s1.svg"
+            },
+            {
+              "id": 2,
+              "hasText": true,
+              "image": "/content/week1/w1_q2_s2.svg"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "hasContent": false,
+      "title": null,
+      "desc": null,
+      "cover": null,
+      "theory": {
+        "prelab": {
+          "hasText": false,
+          "image": null
+        },
+        "postlab": {
+          "hasText": false,
+          "image": null
+        },
+        "procedure": {
+          "hasText": false,
+          "image": null
+        }
+      },
+      "questions": []
+    },
+    {
+      "id": 3,
+      "hasContent": false,
+      "title": null,
+      "desc": null,
+      "cover": null,
+      "theory": {
+        "prelab": {
+          "hasText": false,
+          "image": null
+        },
+        "postlab": {
+          "hasText": false,
+          "image": null
+        },
+        "procedure": {
+          "hasText": false,
+          "image": null
+        }
+      },
+      "questions": []
+    },
+    {
+      "id": 4,
+      "hasContent": false,
+      "title": null,
+      "desc": null,
+      "cover": null,
+      "theory": {
+        "prelab": {
+          "hasText": false,
+          "image": null
+        },
+        "postlab": {
+          "hasText": false,
+          "image": null
+        },
+        "procedure": {
+          "hasText": false,
+          "image": null
+        }
+      },
+      "questions": []
+    },
+    {
+      "id": 5,
+      "hasContent": false,
+      "title": null,
+      "desc": null,
+      "cover": null,
+      "theory": {
+        "prelab": {
+          "hasText": false,
+          "image": null
+        },
+        "postlab": {
+          "hasText": false,
+          "image": null
+        },
+        "procedure": {
+          "hasText": false,
+          "image": null
+        }
+      },
+      "questions": []
+    },
+    {
+      "id": 6,
+      "hasContent": false,
+      "title": null,
+      "desc": null,
+      "cover": null,
+      "theory": {
+        "prelab": {
+          "hasText": false,
+          "image": null
+        },
+        "postlab": {
+          "hasText": false,
+          "image": null
+        },
+        "procedure": {
+          "hasText": false,
+          "image": null
+        }
+      },
+      "questions": []
+    },
+    {
+      "id": 7,
+      "hasContent": false,
+      "title": null,
+      "desc": null,
+      "cover": null,
+      "theory": {
+        "prelab": {
+          "hasText": false,
+          "image": null
+        },
+        "postlab": {
+          "hasText": false,
+          "image": null
+        },
+        "procedure": {
+          "hasText": false,
+          "image": null
+        }
+      },
+      "questions": []
+    },
+    {
+      "id": 8,
+      "hasContent": false,
+      "title": null,
+      "desc": null,
+      "cover": null,
+      "theory": {
+        "prelab": {
+          "hasText": false,
+          "image": null
+        },
+        "postlab": {
+          "hasText": false,
+          "image": null
+        },
+        "procedure": {
+          "hasText": false,
+          "image": null
+        }
+      },
+      "questions": []
+    },
+    {
+      "id": 9,
+      "hasContent": false,
+      "title": null,
+      "desc": null,
+      "cover": null,
+      "theory": {
+        "prelab": {
+          "hasText": false,
+          "image": null
+        },
+        "postlab": {
+          "hasText": false,
+          "image": null
+        },
+        "procedure": {
+          "hasText": false,
+          "image": null
+        }
+      },
+      "questions": []
+    },
+    {
+      "id": 10,
+      "hasContent": false,
+      "title": null,
+      "desc": null,
+      "cover": null,
+      "theory": {
+        "prelab": {
+          "hasText": false,
+          "image": null
+        },
+        "postlab": {
+          "hasText": false,
+          "image": null
+        },
+        "procedure": {
+          "hasText": false,
+          "image": null
+        }
+      },
+      "questions": []
+    },
+    {
+      "id": 11,
+      "hasContent": false,
+      "title": null,
+      "desc": null,
+      "cover": null,
+      "theory": {
+        "prelab": {
+          "hasText": false,
+          "image": null
+        },
+        "postlab": {
+          "hasText": false,
+          "image": null
+        },
+        "procedure": {
+          "hasText": false,
+          "image": null
+        }
+      },
+      "questions": []
+    }
+  ],
+  "warnings": []
+}
