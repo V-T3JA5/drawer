@@ -1,0 +1,19 @@
+{
+  "name": "drawer-egd",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node scripts/generate-manifest.mjs && next dev",
+    "build": "node scripts/generate-manifest.mjs && next build",
+    "start": "next start",
+    "manifest": "node scripts/generate-manifest.mjs"
+  },
+  "dependencies": {
+    "next": "^14.2.0",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0",
+    "three": "^0.164.0",
+    "gsap": "^3.12.5"
+  }
+}
