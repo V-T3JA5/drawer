@@ -3,18 +3,10 @@
 import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import gsap from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
-
-gsap.registerPlugin(ScrollTrigger);
 
 const AMBER = 0xe8890a;
 
 // ---- Procedural placeholder shape (used until you drop a real model in) ----
-// Builds 2 morph targets by displacing an icosahedron's vertices along their
-// own normals with a deterministic pseudo-random pattern. This is a stand-in
-// for what your Blender shape-key export will provide — the influence-driving
-// code below (see bindScrollAnimation) works identically either way.
 function seededRandom(seed) {
   const x = Math.sin(seed) * 43758.5453123;
   return x - Math.floor(x);
@@ -59,9 +51,6 @@ function buildPlaceholderMesh() {
   return mesh;
 }
 
-// Cheap glow halo — a camera-facing sprite with a radial-gradient canvas
-// texture, additively blended. This is the "self-emitting glow" instead of
-// a separate rendered background/environment (kept light on purpose).
 function buildGlowSprite() {
   const size = 256;
   const canvas = document.createElement('canvas');
@@ -89,7 +78,27 @@ function buildGlowSprite() {
   return sprite;
 }
 
-export default function DriftModel({ scrollRegionSelector = '#week-list-scroll-region', cycles = 6 }) {
+// Converts a screen-space pixel coordinate into Three.js world space at a
+// given world-Z depth, using the camera's real projection — not a guessed
+// formula. This is what lets the model find the card's ACTUAL edge on
+// screen, at any window width, instead of drifting on a generic curve that
+// may or may not clear the card.
+function screenToWorld(screenX, screenY, camera, viewportWidth, viewportHeight, targetZ) {
+  const ndcX = (screenX / viewportWidth) * 2 - 1;
+  const ndcY = -(screenY / viewportHeight) * 2 + 1;
+  const vector = new THREE.Vector3(ndcX, ndcY, 0.5);
+  vector.unproject(camera);
+  const dir = vector.sub(camera.position).normalize();
+  const distance = (targetZ - camera.position.z) / dir.z;
+  return camera.position.clone().add(dir.multiplyScalar(distance));
+}
+
+const GUTTER_MARGIN_PX = 70; // breathing room between the card edge and the model
+const MIN_ONSCREEN_MARGIN_PX = 40; // keeps the model from drifting fully off-screen on narrower desktop widths
+const POSITION_EASE = 0.07; // lower = smoother/laggier follow, higher = snappier
+const PROGRESS_EASE = 0.08;
+
+export default function DriftModel({ cardSelector = '[data-week-card]' }) {
   const canvasRef = useRef(null);
 
   useEffect(() => {
@@ -98,8 +107,9 @@ export default function DriftModel({ scrollRegionSelector = '#week-list-scroll-r
 
     let frameId;
     let mesh = null;
-    let scrollTriggerInstance = null;
     let cancelled = false;
+    let smoothedProgress = 0;
+    const currentPos = new THREE.Vector3(0, 0, 0);
 
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 100);
@@ -116,16 +126,12 @@ export default function DriftModel({ scrollRegionSelector = '#week-list-scroll-r
     scene.add(keyLight);
 
     function onMeshReady(theMesh) {
-      if (cancelled) return; // component was torn down while the file was loading
+      if (cancelled) return;
       mesh = theMesh;
       scene.add(mesh);
       mesh.add(buildGlowSprite());
-      bindScrollAnimation();
     }
 
-    // Try the real Blender export first; if it isn't there yet (normal today),
-    // fall back to the procedural placeholder. Swapping in your real file
-    // later requires no code change — just add public/models/main-model.glb.
     const loader = new GLTFLoader();
     loader.load(
       '/models/main-model.glb',
@@ -149,42 +155,77 @@ export default function DriftModel({ scrollRegionSelector = '#week-list-scroll-r
       }
     );
 
-    function bindScrollAnimation() {
-      scrollTriggerInstance = ScrollTrigger.create({
-        trigger: scrollRegionSelector,
-        start: 'top top',
-        end: 'bottom bottom',
-        scrub: true,
-        onUpdate: (self) => updateTransform(self.progress),
+    // Finds whichever card is currently nearest the vertical center of the
+    // viewport, and returns a target screen position just outside its left
+    // or right edge (alternating by card index), clamped so it never drifts
+    // fully off-screen even when the gutter is tight.
+    function getTargetScreenPosition() {
+      const cards = document.querySelectorAll(cardSelector);
+      if (cards.length === 0) return null;
+
+      const viewportCenterY = window.innerHeight / 2;
+      let nearest = null;
+      let nearestDist = Infinity;
+      let nearestIndex = 0;
+
+      cards.forEach((card, i) => {
+        const rect = card.getBoundingClientRect();
+        const cardCenterY = rect.top + rect.height / 2;
+        const dist = Math.abs(cardCenterY - viewportCenterY);
+        if (dist < nearestDist) {
+          nearestDist = dist;
+          nearest = rect;
+          nearestIndex = i;
+        }
       });
-    }
 
-    function updateTransform(progress) {
-      if (!mesh) return;
-      const t = progress * cycles;
+      if (!nearest) return null;
 
-      // Diagonal drift left/right through the card gaps (bounded, not tied to
-      // absolute page height — see code comments in globals.css for why).
-      mesh.position.x = Math.sin(t * Math.PI) * 2.4;
-      mesh.position.y = Math.cos(t * Math.PI * 0.5) * 1.6;
+      const goRight = nearestIndex % 2 === 1;
+      let x = goRight ? nearest.right + GUTTER_MARGIN_PX : nearest.left - GUTTER_MARGIN_PX;
+      x = Math.max(MIN_ONSCREEN_MARGIN_PX, Math.min(window.innerWidth - MIN_ONSCREEN_MARGIN_PX, x));
 
-      // Continuous spin
-      mesh.rotation.y = progress * Math.PI * 2 * cycles * 0.5;
-      mesh.rotation.x = progress * Math.PI * cycles * 0.3;
-
-      // Gentle rhythmic zoom-in/out synced to the spin, as requested
-      const pulse = 1 + 0.18 * Math.sin(t * Math.PI * 2);
-      mesh.scale.setScalar(pulse);
-
-      // Real shape-shift, driven by scroll position (not a timer)
-      if (mesh.morphTargetInfluences && mesh.morphTargetInfluences.length >= 2) {
-        mesh.morphTargetInfluences[0] = (Math.sin(t * Math.PI * 2) + 1) / 2;
-        mesh.morphTargetInfluences[1] = (Math.sin(t * Math.PI * 2 + Math.PI / 2) + 1) / 2;
-      }
+      const y = nearest.top + nearest.height / 2;
+      return { x, y };
     }
 
     function animate() {
       frameId = requestAnimationFrame(animate);
+      if (!mesh) {
+        renderer.render(scene, camera);
+        return;
+      }
+
+      // Smooth the overall scroll progress (used for spin + shape-shift) so
+      // a fast/jumpy scroll (flick, Page Down) doesn't cause visible snapping.
+      const maxScroll = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+      const rawProgress = window.scrollY / maxScroll;
+      smoothedProgress += (rawProgress - smoothedProgress) * PROGRESS_EASE;
+
+      const target = getTargetScreenPosition();
+      if (target) {
+        const worldTarget = screenToWorld(target.x, target.y, camera, window.innerWidth, window.innerHeight, 0);
+        // Ease toward the target rather than snapping — this is what removes
+        // the "quick/crunchy" feeling; the model glides to wherever the
+        // current card actually is instead of teleporting there.
+        currentPos.x += (worldTarget.x - currentPos.x) * POSITION_EASE;
+        currentPos.y += (worldTarget.y - currentPos.y) * POSITION_EASE;
+        mesh.position.x = currentPos.x;
+        mesh.position.y = currentPos.y;
+      }
+
+      mesh.rotation.y = smoothedProgress * Math.PI * 10;
+      mesh.rotation.x = smoothedProgress * Math.PI * 4;
+
+      const pulse = 1 + 0.15 * Math.sin(smoothedProgress * Math.PI * 16);
+      mesh.scale.setScalar(pulse);
+
+      if (mesh.morphTargetInfluences && mesh.morphTargetInfluences.length >= 2) {
+        const t = smoothedProgress * Math.PI * 16;
+        mesh.morphTargetInfluences[0] = (Math.sin(t) + 1) / 2;
+        mesh.morphTargetInfluences[1] = (Math.sin(t + Math.PI / 2) + 1) / 2;
+      }
+
       renderer.render(scene, camera);
     }
     animate();
@@ -200,7 +241,6 @@ export default function DriftModel({ scrollRegionSelector = '#week-list-scroll-r
       cancelled = true;
       cancelAnimationFrame(frameId);
       window.removeEventListener('resize', handleResize);
-      if (scrollTriggerInstance) scrollTriggerInstance.kill();
       scene.traverse((obj) => {
         if (obj.geometry) obj.geometry.dispose();
         if (obj.material) {
@@ -210,7 +250,7 @@ export default function DriftModel({ scrollRegionSelector = '#week-list-scroll-r
       });
       renderer.dispose();
     };
-  }, [scrollRegionSelector, cycles]);
+  }, [cardSelector]);
 
   return <canvas ref={canvasRef} className="drift-model-layer" aria-hidden="true" />;
 }
